@@ -1,14 +1,14 @@
 # GuildBot
 Discord Bot, prefix: ?
 
-LastFM
+**LastFM**
 
 fmlogin fmta fmtest
 
-Misc
+**Misc**
 
 fisher ping
 
-​No Category
+**No Category**
 
 embeded help reload test
