@@ -3,10 +3,13 @@ from discord.ext import commands
 import requests
 import json
 import asyncio
+import spotipy
+from spotipy.oauth2 import SpotifyClientCredentials
 
 with open('Texts/Secrets.txt', 'r') as filestream:
     data = filestream.readlines()
     API_KEY = data[1]
+    sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(client_id=data[2][:-1], client_secret=data[3][:-1]))
 filestream.close()
 USER_AGENT = 'GuildMaster'
 
@@ -43,6 +46,14 @@ def nameCheck(discordid):
     filestream4.close()
 
 
+def spotifyImage(name):
+    results = sp.search(q='artist:' + name, type='artist')
+    items = results['artists']['items']
+    if len(items) > 0:
+        artist = items[0]
+        return artist['images'][0]['url']
+
+
 class LastFM(commands.Cog):
 
     def __init__(self, client):
@@ -54,6 +65,7 @@ class LastFM(commands.Cog):
         if name is not None:
             r = lastfm_get({'method': 'user.getTopArtists', 'user': name, 'limit': 100})
             artists = []
+            artist1 = r.json()['topartists']['artist'][0]['name']
             for i in range(len(r.json()['topartists']['artist'])):
                 artists.append(str(i + 1) + ". **" + r.json()['topartists']['artist'][i]['name'] + "** (" + r.json()['topartists']['artist'][i]['playcount'] + " plays)")
             desc0, desc1, desc2, desc3, desc4, desc5, desc6, desc7, desc8, desc9 = [], [], [], [], [], [], [], [], [], []
@@ -96,6 +108,7 @@ class LastFM(commands.Cog):
             embed = self.client.fmta_pages[current]
             embed.set_footer(text="Page " + str(current + 1) + "/" + str(len(self.client.fmta_pages)))
             embed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
+            embed.set_thumbnail(url=spotifyImage(artist1))
             msg = await ctx.send(embed=self.client.fmta_pages[current])
 
             for button in buttons:
@@ -126,6 +139,7 @@ class LastFM(commands.Cog):
                         embed = self.client.fmta_pages[current]
                         embed.set_footer(text="Page " + str(current + 1) + "/" + str(len(self.client.fmta_pages)))
                         embed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
+                        embed.set_thumbnail(url=spotifyImage(artist1))
                         await msg.edit(embed=self.client.fmta_pages[current])
         else:
             await ctx.send("You're not logged in yet! Use `?fmlogin <yourname>` to set your LastFM name.")
@@ -151,8 +165,9 @@ class LastFM(commands.Cog):
     @commands.command()
     async def fmtest(self, ctx):
         r = lastfm_get({'method': 'user.getTopArtists', 'user': 'GuildMasterTV', 'limit': 100})
-        jprint(r.json()['topartists']['artist'])
+        #jprint(r.json()['topartists']['artist'])
         print(r.json()['topartists']['artist'][0]['image'][1]['#text'])
+        print(spotifyImage('Poppy'))
 
 
 def setup(client):  # Adds Cog

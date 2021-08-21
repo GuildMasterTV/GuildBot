@@ -49,7 +49,7 @@ async def on_command_error(ctx, error):  # If User uses Command that doesn't exi
 async def embeded(ctx):
     embed = discord.Embed(
         title='Title',
-        description='This is a description',
+        description='Snolid Ice',
         colour=discord.Colour.blue(),
     )
 
