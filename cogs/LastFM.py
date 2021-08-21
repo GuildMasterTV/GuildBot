@@ -54,6 +54,10 @@ def spotifyImage(name):
         return artist['images'][0]['url']
 
 
+def tupleSort(t):  # Sort Key for Tuples
+    return int(t[1])
+
+
 class LastFM(commands.Cog):
 
     def __init__(self, client):
@@ -107,7 +111,7 @@ class LastFM(commands.Cog):
             current = 0
             embed = self.client.fmta_pages[current]
             embed.set_footer(text="Page " + str(current + 1) + "/" + str(len(self.client.fmta_pages)))
-            embed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
+            embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
             embed.set_thumbnail(url=spotifyImage(artist1))
             msg = await ctx.send(embed=self.client.fmta_pages[current])
 
@@ -161,6 +165,41 @@ class LastFM(commands.Cog):
                 await ctx.send("Succesfully saved LastFM name as: " + message)
         filestream2.close()
         filestream3.close()
+
+    @commands.command(pass_context=True, aliases=['wk', 'fmwhoknows', 'whoknows'])
+    async def fmwk(self, ctx, *, message):  # Lists Artist Crowns
+        with open('Texts/lastfmNames.txt') as filestream5:
+            names = filestream5.readlines()
+            plays = []
+            totalPlays = 0
+            for line in names:
+                currentLine = line.split(',')
+                user = currentLine[1][:-1]
+                userID = currentLine[0]
+                request = lastfm_get({'method': 'artist.getInfo', 'username': user, 'artist': message, 'autocorrect': 1})
+                member = ctx.guild.get_member(int(userID))
+                totalPlays += int(request.json()['artist']['stats']['userplaycount'])
+                plays.append((member.display_name, request.json()['artist']['stats']['userplaycount']))
+        filestream5.close()
+
+        plays.sort(reverse=True, key=tupleSort)
+        desc = []
+        while int(plays[-1][1]) == 0:  # Removes all people with 0 plays
+            for x in plays:
+                if x[1] == '0':
+                    plays.remove(x)
+
+        for i in range(len(plays)):
+            if i == 0:
+                desc.append(":crown: **" + plays[i][0] + "** - **" + plays[i][1] + "** plays")
+            else:
+                desc.append(str(i + 1) + ". **" + plays[i][0] + "** - **" + plays[i][1] + "** plays")
+
+        desc = '\n'.join(desc)
+        artistE = discord.Embed(title="Who knows **" + message + "**?", description=desc, colour=discord.Colour.dark_theme())
+        artistE.set_footer(text='Total Plays: ' + str(totalPlays))
+        artistE.set_thumbnail(url=spotifyImage(message))
+        await ctx.send(embed=artistE)
 
     @commands.command()
     async def fmtest(self, ctx):

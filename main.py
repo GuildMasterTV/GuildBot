@@ -28,7 +28,10 @@ with open('Texts/Secrets.txt', 'r') as filestream:
     TOKEN = data[0]
 filestream.close()
 
-client = commands.Bot(command_prefix='?', help_command=commands.MinimalHelpCommand())
+intents = discord.Intents().default()
+intents.members = True
+intents.presences = True
+client = commands.Bot(intents=intents, command_prefix='?', help_command=commands.MinimalHelpCommand())
 DiscordComponents(client)
 
 
@@ -73,6 +76,12 @@ async def test(ctx, *, message):
 async def test_error(ctx, error):  # Error Checking for test command
     if isinstance(error, commands.MissingRequiredArgument):
         await ctx.send('Please fill all arguments')
+
+
+@client.command()
+async def members(ctx):
+    member = ctx.guild.get_member(227499228413427712)
+    print(member.nick)
 
 
 @client.command()
