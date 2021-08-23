@@ -1,9 +1,9 @@
-# GuildBot
-Discord Bot, prefix: ?
+# GuildBot a Multi-Function Discord Bot
+Prefix: ?
 
 **LastFM**
 
-fmlogin fmta fmwk
+fmlogin fmta fmwk cwlb
 
 **Misc**
 
