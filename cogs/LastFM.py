@@ -46,12 +46,14 @@ def nameCheck(discordid):
     filestream4.close()
 
 
-def spotifyImage(name):
+def spotifyInfo(name, selection):
     results = sp.search(q='artist:' + name, type='artist')
     items = results['artists']['items']
     if len(items) > 0:
-        artist = items[0]
-        return artist['images'][0]['url']
+        if selection == 'url':
+            return items[0]['images'][0]['url']
+        if selection == 'genres':
+            return items[0]['genres']
 
 
 def tupleSort(t):  # Sort Key for Tuples
@@ -112,7 +114,7 @@ class LastFM(commands.Cog):
             embed = self.client.fmta_pages[current]
             embed.set_footer(text="Page " + str(current + 1) + "/" + str(len(self.client.fmta_pages)))
             embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
-            embed.set_thumbnail(url=spotifyImage(artist1))
+            embed.set_thumbnail(url=spotifyInfo(artist1, 'url'))
             msg = await ctx.send(embed=self.client.fmta_pages[current])
 
             for button in buttons:
@@ -143,7 +145,7 @@ class LastFM(commands.Cog):
                         embed = self.client.fmta_pages[current]
                         embed.set_footer(text="Page " + str(current + 1) + "/" + str(len(self.client.fmta_pages)))
                         embed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
-                        embed.set_thumbnail(url=spotifyImage(artist1))
+                        embed.set_thumbnail(url=spotifyInfo(artist1, 'url'))
                         await msg.edit(embed=self.client.fmta_pages[current])
         else:
             await ctx.send("You're not logged in yet! Use `?fmlogin <yourname>` to set your LastFM name.")
@@ -195,18 +197,22 @@ class LastFM(commands.Cog):
             else:
                 desc.append(str(i + 1) + ". **" + plays[i][0] + "** - **" + plays[i][1] + "** plays")
 
+        genre = spotifyInfo(message, 'genres')
+        genre = ' - '.join(genre)
         desc = '\n'.join(desc)
+
         artistE = discord.Embed(title="Who knows **" + message + "**?", description=desc, colour=discord.Colour.dark_theme())
-        artistE.set_footer(text='Total Plays: ' + str(totalPlays))
-        artistE.set_thumbnail(url=spotifyImage(message))
+        artistE.set_footer(text=genre + '\n' + 'Total Plays: ' + str(totalPlays))
+        artistE.set_thumbnail(url=spotifyInfo(message, 'url'))
         await ctx.send(embed=artistE)
 
     @commands.command()
     async def fmtest(self, ctx):
-        r = lastfm_get({'method': 'user.getTopArtists', 'user': 'GuildMasterTV', 'limit': 100})
+        #r = lastfm_get({'method': 'user.getTopArtists', 'user': 'GuildMasterTV', 'limit': 100})
         #jprint(r.json()['topartists']['artist'])
-        print(r.json()['topartists']['artist'][0]['image'][1]['#text'])
-        print(spotifyImage('Poppy'))
+        #print(r.json()['topartists']['artist'][0]['image'][1]['#text'])
+        results = sp.search(q='artist:' + 'Poppy', type='artist')
+        print(results['artists']['items'][0]['genres'])
 
 
 def setup(client):  # Adds Cog
