@@ -40,7 +40,7 @@ def nameCheck(discordid):
             currentline = line.split(',')
             if discordid == currentline[0]:
                 foundID = True
-                return currentline[1][:-1]
+                return currentline[1]
         if not foundID:
             return None
     filestream4.close()
@@ -161,58 +161,121 @@ class LastFM(commands.Cog):
                     foundID = True
                     await ctx.send("You are already logged in!")
             if not foundID:
-                names.append(str(ctx.author.id) + ',' + message + '\n')
+                names.append(str(ctx.author.id) + ',' + message + ',0,0' + '\n')
                 with open('Texts/lastfmNames.txt', 'w') as filestream3:
                     filestream3.writelines(names)
                 await ctx.send("Succesfully saved LastFM name as: " + message)
         filestream2.close()
         filestream3.close()
 
-    @commands.command(pass_context=True, aliases=['wk', 'fmwhoknows', 'whoknows'])
+    @commands.command(pass_context=True, aliases=['wk', 'fmwhoknows', 'whoknows', 'Wk', 'Fmwk'])
     async def fmwk(self, ctx, *, message):  # Lists Artist Crowns
-        with open('Texts/lastfmNames.txt') as filestream5:
+        with open('Texts/lastfmNames.txt', 'r') as filestream5:
             names = filestream5.readlines()
             plays = []
             totalPlays = 0
             for line in names:
                 currentLine = line.split(',')
-                user = currentLine[1][:-1]
+                user = currentLine[1]
                 userID = currentLine[0]
                 request = lastfm_get({'method': 'artist.getInfo', 'username': user, 'artist': message, 'autocorrect': 1})
                 member = ctx.guild.get_member(int(userID))
                 totalPlays += int(request.json()['artist']['stats']['userplaycount'])
-                plays.append((member.display_name, request.json()['artist']['stats']['userplaycount']))
-        filestream5.close()
+                plays.append((member.display_name, request.json()['artist']['stats']['userplaycount'], userID))
 
         plays.sort(reverse=True, key=tupleSort)
+        artist = request.json()['artist']['name']
         desc = []
         while int(plays[-1][1]) == 0:  # Removes all people with 0 plays
             for x in plays:
                 if x[1] == '0':
                     plays.remove(x)
 
-        for i in range(len(plays)):
+        for i in range(len(plays)):  # Makes Description string
             if i == 0:
                 desc.append(":crown: **" + plays[i][0] + "** - **" + plays[i][1] + "** plays")
             else:
                 desc.append(str(i + 1) + ". **" + plays[i][0] + "** - **" + plays[i][1] + "** plays")
 
-        genre = spotifyInfo(message, 'genres')
+        with open('Texts/artists.txt', 'r') as filestream6:
+            crown = 0
+            remove = None
+            crowns = filestream6.readlines()
+            artistFound = False
+            index = 0
+            for line in crowns:
+                cl = line.split(',')
+                if artist == cl[0] and plays[0][2] == cl[1][:-1]:
+                    artistFound = True
+                elif artist == cl[0] and plays[0][2] != cl[1][:-1]:
+                    artistFound = True
+                    remove = cl[1][:-1]
+                    crowns[index] = cl[0] + ',' + plays[0][2] + '\n'
+                    crown = 1
+                index += 1
+
+            if not artistFound:
+                crowns.append(artist + ',' + plays[0][2] + '\n')
+                crown = 1
+
+        with open('Texts/artists.txt', 'w') as filestream7:
+            filestream7.writelines(crowns)
+
+        ind = 0
+        for el in names:
+            li = el.split(',')
+            if li[0] == plays[0][2]:
+                names[ind] = li[0] + ',' + li[1] + ',' + str(int(li[2]) + crown) + ',0\n'
+            elif li[0] == remove:
+                names[ind] = li[0] + ',' + li[1] + ',' + str(int(li[2]) - crown) + ',0\n'
+            ind += 1
+
+        with open('Texts/lastfmNames.txt', 'w') as filestream8:
+            filestream8.writelines(names)
+
+        genre = spotifyInfo(artist, 'genres')
         genre = ' - '.join(genre)
         desc = '\n'.join(desc)
 
-        artistE = discord.Embed(title="Who knows **" + message + "**?", description=desc, colour=discord.Colour.dark_theme())
+        artistE = discord.Embed(title="Who knows **" + artist + "**?", description=desc, colour=discord.Colour.dark_theme())
         artistE.set_footer(text=genre + '\n' + 'Total Plays: ' + str(totalPlays))
-        artistE.set_thumbnail(url=spotifyInfo(message, 'url'))
+        artistE.set_thumbnail(url=spotifyInfo(artist, 'url'))
+
+        filestream5.close()
+        filestream6.close()
+        filestream7.close()
+        filestream8.close()
+
         await ctx.send(embed=artistE)
 
     @commands.command()
+    async def cwlb(self, ctx):
+        with open('Texts/lastfmNames.txt', 'r') as filestreamcwlb:
+            cws = filestreamcwlb.readlines()
+            leaderboard = []
+            for lines in cws:
+                currentLine = lines.split(',')
+                discID = currentLine[0]
+                member = ctx.guild.get_member(int(discID))
+                leaderboard.append((member.display_name, currentLine[2]))
+
+        leaderboard.sort(reverse=True, key=tupleSort)
+        desc = []
+        for i in range(len(leaderboard)):
+            desc.append(str(i + 1) + ". **" + leaderboard[i][0] + "** - **" + leaderboard[i][1] + "** Crowns")
+        desc = '\n'.join(desc)
+        lb = discord.Embed(title="Crown Leaderboard for " + str(ctx.guild), description=desc, colour=discord.Colour.dark_theme())
+        filestreamcwlb.close()
+
+        await ctx.send(embed=lb)
+
+    @commands.command()
     async def fmtest(self, ctx):
-        #r = lastfm_get({'method': 'user.getTopArtists', 'user': 'GuildMasterTV', 'limit': 100})
-        #jprint(r.json()['topartists']['artist'])
+        r = lastfm_get({'method': 'artist.getInfo', 'username': 'GuildMasterTV', 'artist': 'Poppy', 'autocorrect': 1})
+        jprint(r.json()['artist']['name'])
         #print(r.json()['topartists']['artist'][0]['image'][1]['#text'])
-        results = sp.search(q='artist:' + 'Poppy', type='artist')
-        print(results['artists']['items'][0]['genres'])
+        #results = sp.search(q='artist:' + 'Poppy', type='artist')
+        #print(results['artists']['items'])
 
 
 def setup(client):  # Adds Cog

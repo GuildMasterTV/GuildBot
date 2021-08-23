@@ -89,6 +89,7 @@ async def reload(ctx, extension):  # Reloads Cog Files
     if ctx.author.id == 227499228413427712:
         client.unload_extension(f'cogs.{extension}')
         client.load_extension(f'cogs.{extension}')
+        print("Reloaded " + extension + '.py')
     else:
         await ctx.send("You don't have permission to use that")
 
