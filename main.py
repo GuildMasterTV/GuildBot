@@ -79,12 +79,6 @@ async def test_error(ctx, error):  # Error Checking for test command
 
 
 @client.command()
-async def members(ctx):
-    member = ctx.guild.get_member(227499228413427712)
-    print(member.nick)
-
-
-@client.command()
 async def reload(ctx, extension):  # Reloads Cog Files
     if ctx.author.id == 227499228413427712:
         client.unload_extension(f'cogs.{extension}')

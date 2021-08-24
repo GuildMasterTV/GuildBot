@@ -1,3 +1,5 @@
+import sys
+
 import discord
 from discord.ext import commands
 import requests
@@ -53,7 +55,12 @@ def spotifyInfo(name, selection):
         if selection == 'url':
             return items[0]['images'][0]['url']
         if selection == 'genres':
-            return items[0]['genres']
+            return ' - '.join(items[0]['genres'])
+    else:
+        if selection == 'url':
+            return 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/ac/No_image_available.svg/1200px-No_image_available.svg.png'
+        if selection == 'genres':
+            return ""
 
 
 def tupleSort(t):  # Sort Key for Tuples
@@ -186,16 +193,21 @@ class LastFM(commands.Cog):
         plays.sort(reverse=True, key=tupleSort)
         artist = request.json()['artist']['name']
         desc = []
+
         while int(plays[-1][1]) == 0:  # Removes all people with 0 plays
             for x in plays:
                 if x[1] == '0':
                     plays.remove(x)
 
-        for i in range(len(plays)):  # Makes Description string
-            if i == 0:
-                desc.append(":crown: **" + plays[i][0] + "** - **" + plays[i][1] + "** plays")
-            else:
-                desc.append(str(i + 1) + ". **" + plays[i][0] + "** - **" + plays[i][1] + "** plays")
+        if len(plays) != 0:
+            for i in range(len(plays)):  # Makes Description string
+                if i == 0:
+                    desc.append(":crown: **" + plays[i][0] + "** - **" + plays[i][1] + "** plays")
+                else:
+                    desc.append(str(i + 1) + ". **" + plays[i][0] + "** - **" + plays[i][1] + "** plays")
+            desc = '\n'.join(desc)
+        else:
+            desc = "No one has listened to " + artist
 
         with open('Texts/artists.txt', 'r') as filestream6:
             crown = 0
@@ -219,7 +231,14 @@ class LastFM(commands.Cog):
                 crown = 1
 
         with open('Texts/artists.txt', 'w') as filestream7:
-            filestream7.writelines(crowns)
+            try:
+                filestream7.writelines(crowns)
+            except UnicodeEncodeError:
+                uni = crowns.pop(-1)
+                spl = uni.split(',')
+                fixed = spl[0].encode('utf-8')
+                ending = str(fixed) + "," + spl[1]
+                filestream7.writelines(ending)
 
         ind = 0
         for el in names:
@@ -234,9 +253,6 @@ class LastFM(commands.Cog):
             filestream8.writelines(names)
 
         genre = spotifyInfo(artist, 'genres')
-        genre = ' - '.join(genre)
-        desc = '\n'.join(desc)
-
         artistE = discord.Embed(title="Who knows **" + artist + "**?", description=desc, colour=discord.Colour.dark_theme())
         artistE.set_footer(text=genre + '\n' + 'Total Plays: ' + str(totalPlays))
         artistE.set_thumbnail(url=spotifyInfo(artist, 'url'))
@@ -253,9 +269,11 @@ class LastFM(commands.Cog):
         with open('Texts/lastfmNames.txt', 'r') as filestreamcwlb:
             cws = filestreamcwlb.readlines()
             leaderboard = []
+            totalCrowns = 0
             for lines in cws:
                 currentLine = lines.split(',')
                 discID = currentLine[0]
+                totalCrowns += int(currentLine[2])
                 member = ctx.guild.get_member(int(discID))
                 leaderboard.append((member.display_name, currentLine[2]))
 
@@ -265,17 +283,18 @@ class LastFM(commands.Cog):
             desc.append(str(i + 1) + ". **" + leaderboard[i][0] + "** - **" + leaderboard[i][1] + "** Crowns")
         desc = '\n'.join(desc)
         lb = discord.Embed(title="Crown Leaderboard for " + str(ctx.guild), description=desc, colour=discord.Colour.dark_theme())
+        lb.set_footer(text='Total Crowns: ' + str(totalCrowns))
         filestreamcwlb.close()
 
         await ctx.send(embed=lb)
 
     @commands.command()
-    async def fmtest(self, ctx):
-        r = lastfm_get({'method': 'artist.getInfo', 'username': 'GuildMasterTV', 'artist': 'Poppy', 'autocorrect': 1})
-        jprint(r.json()['artist']['name'])
+    async def fmtest(self, ctx, message):
+        r = lastfm_get({'method': 'artist.getInfo', 'username': 'GuildMasterTV', 'artist': message, 'autocorrect': 1})
+        artist = r.json()['artist']['name']
         #print(r.json()['topartists']['artist'][0]['image'][1]['#text'])
-        #results = sp.search(q='artist:' + 'Poppy', type='artist')
-        #print(results['artists']['items'])
+        results = sp.search(q='artist:' + artist, type='artist')
+        print(results)
 
 
 def setup(client):  # Adds Cog
