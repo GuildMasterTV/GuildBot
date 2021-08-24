@@ -189,78 +189,77 @@ class LastFM(commands.Cog):
                 member = ctx.guild.get_member(int(userID))
                 totalPlays += int(request.json()['artist']['stats']['userplaycount'])
                 plays.append((member.display_name, request.json()['artist']['stats']['userplaycount'], userID))
-
+        filestream5.close()
         plays.sort(reverse=True, key=tupleSort)
         artist = request.json()['artist']['name']
         desc = []
 
-        while int(plays[-1][1]) == 0:  # Removes all people with 0 plays
-            for x in plays:
-                if x[1] == '0':
-                    plays.remove(x)
+        try:
+            while int(plays[-1][1]) == 0:  # Removes all people with 0 plays
+                for x in plays:
+                    if x[1] == '0':
+                        plays.remove(x)
+        except IndexError:
+            plays = []
 
-        if len(plays) != 0:
+        if len(plays) > 0:
             for i in range(len(plays)):  # Makes Description string
                 if i == 0:
                     desc.append(":crown: **" + plays[i][0] + "** - **" + plays[i][1] + "** plays")
                 else:
                     desc.append(str(i + 1) + ". **" + plays[i][0] + "** - **" + plays[i][1] + "** plays")
             desc = '\n'.join(desc)
+
+            with open('Texts/artists.txt', 'r') as filestream6:
+                crown = 0
+                remove = None
+                crowns = filestream6.readlines()
+                artistFound = False
+                index = 0
+                for line in crowns:
+                    cl = line.split(',')
+                    if artist == cl[0] and plays[0][2] == cl[1][:-1]:
+                        artistFound = True
+                    elif artist == cl[0] and plays[0][2] != cl[1][:-1]:
+                        artistFound = True
+                        remove = cl[1][:-1]
+                        crowns[index] = cl[0] + ',' + plays[0][2] + '\n'
+                        crown = 1
+                    index += 1
+
+                if not artistFound:
+                    crowns.append(artist + ',' + plays[0][2] + '\n')
+                    crown = 1
+            filestream6.close()
+            with open('Texts/artists.txt', 'w') as filestream7:
+                try:
+                    filestream7.writelines(crowns)
+                except UnicodeEncodeError:
+                    uni = crowns.pop(-1)
+                    spl = uni.split(',')
+                    fixed = spl[0].encode('utf-8')
+                    ending = str(fixed) + "," + spl[1]
+                    filestream7.writelines(ending)
+            filestream7.close()
+            ind = 0
+            for el in names:
+                li = el.split(',')
+                if li[0] == plays[0][2]:
+                    names[ind] = li[0] + ',' + li[1] + ',' + str(int(li[2]) + crown) + ',0\n'
+                elif li[0] == remove:
+                    names[ind] = li[0] + ',' + li[1] + ',' + str(int(li[2]) - crown) + ',0\n'
+                ind += 1
+
+            with open('Texts/lastfmNames.txt', 'w') as filestream8:
+                filestream8.writelines(names)
+            filestream8.close()
         else:
             desc = "No one has listened to " + artist
-
-        with open('Texts/artists.txt', 'r') as filestream6:
-            crown = 0
-            remove = None
-            crowns = filestream6.readlines()
-            artistFound = False
-            index = 0
-            for line in crowns:
-                cl = line.split(',')
-                if artist == cl[0] and plays[0][2] == cl[1][:-1]:
-                    artistFound = True
-                elif artist == cl[0] and plays[0][2] != cl[1][:-1]:
-                    artistFound = True
-                    remove = cl[1][:-1]
-                    crowns[index] = cl[0] + ',' + plays[0][2] + '\n'
-                    crown = 1
-                index += 1
-
-            if not artistFound:
-                crowns.append(artist + ',' + plays[0][2] + '\n')
-                crown = 1
-
-        with open('Texts/artists.txt', 'w') as filestream7:
-            try:
-                filestream7.writelines(crowns)
-            except UnicodeEncodeError:
-                uni = crowns.pop(-1)
-                spl = uni.split(',')
-                fixed = spl[0].encode('utf-8')
-                ending = str(fixed) + "," + spl[1]
-                filestream7.writelines(ending)
-
-        ind = 0
-        for el in names:
-            li = el.split(',')
-            if li[0] == plays[0][2]:
-                names[ind] = li[0] + ',' + li[1] + ',' + str(int(li[2]) + crown) + ',0\n'
-            elif li[0] == remove:
-                names[ind] = li[0] + ',' + li[1] + ',' + str(int(li[2]) - crown) + ',0\n'
-            ind += 1
-
-        with open('Texts/lastfmNames.txt', 'w') as filestream8:
-            filestream8.writelines(names)
 
         genre = spotifyInfo(artist, 'genres')
         artistE = discord.Embed(title="Who knows **" + artist + "**?", description=desc, colour=discord.Colour.dark_theme())
         artistE.set_footer(text=genre + '\n' + 'Total Plays: ' + str(totalPlays))
         artistE.set_thumbnail(url=spotifyInfo(artist, 'url'))
-
-        filestream5.close()
-        filestream6.close()
-        filestream7.close()
-        filestream8.close()
 
         await ctx.send(embed=artistE)
 
@@ -280,15 +279,23 @@ class LastFM(commands.Cog):
         leaderboard.sort(reverse=True, key=tupleSort)
         desc = []
         for i in range(len(leaderboard)):
-            desc.append(str(i + 1) + ". **" + leaderboard[i][0] + "** - **" + leaderboard[i][1] + "** Crowns")
+            if i == 0:
+                desc.append(":first_place:" + " **" + leaderboard[i][0] + "** - **" + leaderboard[i][1] + "** Crowns")
+            elif i == 1:
+                desc.append(":second_place:" + " **" + leaderboard[i][0] + "** - **" + leaderboard[i][1] + "** Crowns")
+            elif i == 2:
+                desc.append(":third_place:" + " **" + leaderboard[i][0] + "** - **" + leaderboard[i][1] + "** Crowns")
+            else:
+                desc.append(str(i + 1) + ". **" + leaderboard[i][0] + "** - **" + leaderboard[i][1] + "** Crowns")
+
         desc = '\n'.join(desc)
-        lb = discord.Embed(title="Crown Leaderboard for " + str(ctx.guild), description=desc, colour=discord.Colour.dark_theme())
+        lb = discord.Embed(title=":crown: Crown Leaderboard for " + str(ctx.guild), description=desc, colour=discord.Colour.gold())
         lb.set_footer(text='Total Crowns: ' + str(totalCrowns))
         filestreamcwlb.close()
 
         await ctx.send(embed=lb)
 
-    @commands.command()
+    @commands.command(hidden=True)
     async def fmtest(self, ctx, message):
         r = lastfm_get({'method': 'artist.getInfo', 'username': 'GuildMasterTV', 'artist': message, 'autocorrect': 1})
         artist = r.json()['artist']['name']

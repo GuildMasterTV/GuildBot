@@ -48,7 +48,7 @@ async def on_command_error(ctx, error):  # If User uses Command that doesn't exi
         await ctx.send('Invalid Command')
 
 
-@client.command(pass_context=True)
+@client.command(pass_context=True, hidden=True)
 async def embeded(ctx):
     embed = discord.Embed(
         title='Title',
@@ -67,7 +67,7 @@ async def embeded(ctx):
     await ctx.send(embed=embed)
 
 
-@client.command(pass_context=True)
+@client.command(pass_context=True, hidden=True)
 async def test(ctx, *, message):
     await ctx.send(message)
 
@@ -78,7 +78,7 @@ async def test_error(ctx, error):  # Error Checking for test command
         await ctx.send('Please fill all arguments')
 
 
-@client.command()
+@client.command(hidden=True)
 async def reload(ctx, extension):  # Reloads Cog Files
     if ctx.author.id == 227499228413427712:
         client.unload_extension(f'cogs.{extension}')
